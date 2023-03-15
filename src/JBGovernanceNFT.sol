@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {JBGovernanceNFTStake} from "./structs/JBGovernanceNFTStake.sol";
 import {JBGovernanceNFTMint} from "./structs/JBGovernanceNFTMint.sol";
 import {JBGovernanceNFTBurn} from "./structs/JBGovernanceNFTBurn.sol";
 
@@ -21,7 +20,6 @@ contract JBGovernanceNFT is ERC721Votes {
 
     IERC20 immutable token;
     mapping(address => uint256) public stakingTokenBalance;
-    mapping(uint256 => JBGovernanceNFTStake) stakes;
 
     uint256 nextokenId = 1;
 
@@ -42,14 +40,10 @@ contract JBGovernanceNFT is ERC721Votes {
             unchecked {
                 _tokenId = ++nextokenId;
             }
-
-            // Store the info regarding this staked position
-            stakes[_tokenId] = JBGovernanceNFTStake({
-                amount: uint200(_mints[_i].stakeAmount),
-                stakedAt: _sender
-            });
             
             emit NFTStaked(_tokenId, _sender);
+
+            stakingTokenBalance[_mints[_i].beneficiary] += _mints[_i].stakeAmount;
 
             // Living on the edge, using safemint because we can
             _safeMint(_mints[_i].beneficiary, _tokenId);
@@ -62,18 +56,22 @@ contract JBGovernanceNFT is ERC721Votes {
     function burn_and_unstake(JBGovernanceNFTBurn[] calldata _burns) external {
         for (uint256 _i; _i < _burns.length;) {
             uint256 _tokenId = _burns[_i].tokenId;
+            address _owner = _ownerOf(_tokenId);
+            address _beneficiary = _burns[_i].beneficiary;
+
             // Make sure only the owner can do this
-            if (_ownerOf(_tokenId) != msg.sender) 
+            if (_owner != msg.sender) 
                 revert NO_PERMISSION(_tokenId);  
+            
+            uint256 _stakeAmount = stakingTokenBalance[_beneficiary];
+            stakingTokenBalance[_beneficiary] -= _stakeAmount;
 
             emit NFTUnstaked(_tokenId);
             // Release the stake
             // We can transfer before deleting from storage since the NFT is burned
             // Any attempt at reentrence will revert since the storage delete is non-critical
             // we are just recouping some gas cost
-            token.transferFrom(address(this), _burns[_i].beneficiary, stakes[_tokenId].amount);
-            // Delete the position
-            delete stakes[_burns[_i].tokenId];
+            token.transferFrom(address(this), _beneficiary, _stakeAmount);
 
              _burn(_tokenId);
 
@@ -96,24 +94,16 @@ contract JBGovernanceNFT is ERC721Votes {
         // batchSize is used if inherited from `ERC721Consecutive`
         // which we don't, so this should always be 1
         assert(batchSize == 1);
-        uint256 _stakingTokenAmount = stakes[firstTokenId].amount;
 
         // TODO: check if we can do this 'unchecked'
-
-        if (from != address(0)) {
-            stakingTokenBalance[from] -= _stakingTokenAmount;
-        }
-
-        if (to != address(0)) {
-            stakingTokenBalance[to] += _stakingTokenAmount;
-        }
-
+        
+        uint256 _stakeAmount = stakingTokenBalance[from];
         if (from != address(0) && to != address(0)) {
-            stakes[firstTokenId].stakedAt = to;
+            stakingTokenBalance[from] -= _stakeAmount;
+            stakingTokenBalance[to] += _stakeAmount;
         }
 
-
-        _transferVotingUnits(from, to, _stakingTokenAmount);
+        _transferVotingUnits(from, to, _stakeAmount);
         super._afterTokenTransfer(from, to, firstTokenId, batchSize);
     }
 
