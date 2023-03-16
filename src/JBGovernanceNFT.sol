@@ -12,8 +12,8 @@ contract JBGovernanceNFT is ERC721Votes {
     using Checkpoints for Checkpoints.History;
     using SafeERC20 for IERC20;
 
-    event NFTStaked(uint256 _tokenId, address _stakedAt);
-    event NFTUnstaked(uint256 _tokenId);
+    event NFT_Minted_and_Staked(uint256 _tokenId, address _stakedAt);
+    event NFT_Burnt_and_Unstaked(uint256 _tokenId);
 
     error NO_PERMISSION(uint256 _tokenId);
     error INVALID_STAKE_AMOUNT(uint256 _i, uint256 _amount);
@@ -42,7 +42,7 @@ contract JBGovernanceNFT is ERC721Votes {
             // Living on the edge, using safemint because we can
             _safeMint(_mints[_i].beneficiary, nextokenId);
 
-             emit NFTStaked(nextokenId, _sender);
+             emit NFT_Minted_and_Staked(nextokenId, _sender);
     
              _tokenId = nextokenId;
             // Get the tokenId to use and increment it for the next usage
@@ -66,8 +66,7 @@ contract JBGovernanceNFT is ERC721Votes {
             uint256 _stakeAmount = stakingTokenBalance[_beneficiary];
             stakingTokenBalance[_beneficiary] -= _stakeAmount;
 
-            emit NFTUnstaked(_tokenId);
-            // Release the stake
+            emit NFT_Burnt_and_Unstaked(_tokenId);
             // We can transfer before deleting from storage since the NFT is burned
             // Any attempt at reentrence will revert since the storage delete is non-critical
             // we are just recouping some gas cost
