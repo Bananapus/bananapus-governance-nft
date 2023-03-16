@@ -30,8 +30,8 @@ contract JBGovernanceNFT is ERC721Votes {
     function mint_and_stake(JBGovernanceNFTMint[] calldata _mints) external returns (uint256 _tokenId) {
         address _sender = _msgSender();
         for (uint256 _i; _i < _mints.length;) {
-            // Should never be more than a uint200 or 0
-            if (_mints[_i].stakeAmount == 0 || _mints[_i].stakeAmount > type(uint200).max) {
+            // Should never be 0
+            if (_mints[_i].stakeAmount == 0) {
                 revert INVALID_STAKE_AMOUNT(_i, _mints[_i].stakeAmount);
             }
             // Transfer the stake amount from the user
@@ -94,13 +94,14 @@ contract JBGovernanceNFT is ERC721Votes {
         // batchSize is used if inherited from `ERC721Consecutive`
         // which we don't, so this should always be 1
         assert(batchSize == 1);
-
-        // TODO: check if we can do this 'unchecked'
         
         uint256 _stakeAmount = stakingTokenBalance[from];
         if (from != address(0) && to != address(0)) {
-            stakingTokenBalance[from] -= _stakeAmount;
-            stakingTokenBalance[to] += _stakeAmount;
+            // optional using unchecked for now
+            unchecked {
+              stakingTokenBalance[from] -= _stakeAmount;
+              stakingTokenBalance[to] += _stakeAmount;
+            }
         }
 
         _transferVotingUnits(from, to, _stakeAmount);

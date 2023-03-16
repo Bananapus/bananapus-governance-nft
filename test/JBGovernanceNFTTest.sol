@@ -28,6 +28,8 @@ contract JBGovernanceNFTTest is Test {
         // Make sure we have enough balance
         vm.assume(_amount < stakeToken.totalSupply() && _amount != 0);
         vm.assume(_beneficiary != address(0));
+        vm.assume(_beneficiary != address(jbGovernanceNFT));
+
         // Give enough token allowance to be able to mint
         vm.startPrank(user);
         stakeToken.increaseAllowance(address(jbGovernanceNFT), _amount);
@@ -83,6 +85,7 @@ contract JBGovernanceNFTTest is Test {
 
         // Can't mint to the 0 address
         vm.assume(_beneficiary != address(0));
+        vm.assume(_beneficiary != address(jbGovernanceNFT));
 
         for(uint256 _i; _i < _amounts.length; _i++){
             uint200 _amount = _amounts[_i];
@@ -216,6 +219,8 @@ contract JBGovernanceNFTTest is Test {
         // Make sure we have enough balance
         vm.assume(_amount < stakeToken.totalSupply() && _amount != 0);
         vm.assume(_beneficiary != address(0));
+        vm.assume(_beneficiary != address(jbGovernanceNFT));
+
         // Give enough token allowance to be able to mint
         vm.startPrank(user);
         stakeToken.increaseAllowance(address(jbGovernanceNFT), _amount);
