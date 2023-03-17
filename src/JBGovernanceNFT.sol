@@ -8,6 +8,14 @@ import "@openzeppelin/contracts/utils/Checkpoints.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {EIP712, ERC721, ERC721Votes} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Votes.sol";
 
+
+/**
+ * @title JB Governance NFT
+ * @dev Used for granting voting rights and staking functionality to the holder. 
+   @dev
+    Adheres to -
+    ERC721Votes: For enabling the voting and delegation mechanism.
+ */
 contract JBGovernanceNFT is ERC721Votes {
     using Checkpoints for Checkpoints.History;
     using SafeERC20 for IERC20;
@@ -15,18 +23,43 @@ contract JBGovernanceNFT is ERC721Votes {
     event NFT_Minted_and_Staked(uint256 _tokenId, address _stakedAt);
     event NFT_Burnt_and_Unstaked(uint256 _tokenId);
 
+    //*********************************************************************//
+    // --------------------------- custom errors ------------------------- //
+    //*********************************************************************//
     error NO_PERMISSION(uint256 _tokenId);
     error INVALID_STAKE_AMOUNT(uint256 _i, uint256 _amount);
 
+    /**
+     * @dev The ERC20 token that is used for staking.
+     */
     IERC20 immutable token;
+
+    /**
+     * @dev A mapping of staked token balances by user.
+     */
     mapping(address => uint256) public stakingTokenBalance;
 
+    /**
+     * @dev The next available token ID to be minted.
+     */
     uint256 nextokenId = 1;
 
+    //*********************************************************************//
+    // ---------------------------- constructor -------------------------- //
+    //*********************************************************************//
+
+    /**
+     * @param _token The ERC20 token to use for staking.
+     */
     constructor(IERC20 _token) ERC721("", "") EIP712("", "") {
         token = _token;
     }
 
+    /**
+     * @dev Mint a new NFT and stake tokens.
+     * @param _mints An array of struct containing the beneficiary and stake amount for each NFT to be minted.
+     * @return _tokenId The token ID of the newly minted NFT.
+    */
     function mint_and_stake(JBGovernanceNFTMint[] calldata _mints) external returns (uint256 _tokenId) {
         address _sender = _msgSender();
         for (uint256 _i; _i < _mints.length;) {
@@ -53,6 +86,10 @@ contract JBGovernanceNFT is ERC721Votes {
         }
     }
 
+    /**
+     * @dev Burn the nft and unstake tokens.
+     * @param _burns An array of struct containing the token id and beneficiary to be sent the staked tokens too.
+    */
     function burn_and_unstake(JBGovernanceNFTBurn[] calldata _burns) external {
         for (uint256 _i; _i < _burns.length;) {
             uint256 _tokenId = _burns[_i].tokenId;
@@ -95,6 +132,7 @@ contract JBGovernanceNFT is ERC721Votes {
         assert(batchSize == 1);
         
         uint256 _stakeAmount = stakingTokenBalance[from];
+        // need to update the staked amounts during a transfer
         if (from != address(0) && to != address(0)) {
             // optional using unchecked for now
             unchecked {
