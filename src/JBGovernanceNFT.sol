@@ -103,7 +103,7 @@ contract JBGovernanceNFT is ERC721Votes {
                 revert NO_PERMISSION(_tokenId);  
             
             uint256 _stakeAmount = stakingTokenBalance[_beneficiary];
-            stakingTokenBalance[_beneficiary] -= _stakeAmount;
+            delete stakingTokenBalance[_beneficiary];
 
             emit NFT_Burnt_and_Unstaked(_tokenId);
 
@@ -114,7 +114,7 @@ contract JBGovernanceNFT is ERC721Votes {
             unchecked {
                 ++_i;
             }
-        }
+        } 
     }
 
     /**
