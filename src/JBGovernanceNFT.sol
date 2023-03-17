@@ -67,17 +67,19 @@ contract JBGovernanceNFT is ERC721Votes {
             if (_mints[_i].stakeAmount == 0) {
                 revert INVALID_STAKE_AMOUNT(_i, _mints[_i].stakeAmount);
             }
-            // Transfer the stake amount from the user
-            token.safeTransferFrom(_sender, address(this), _mints[_i].stakeAmount);
 
             stakingTokenBalance[_mints[_i].beneficiary] += _mints[_i].stakeAmount;
 
             // Living on the edge, using safemint because we can
             _safeMint(_mints[_i].beneficiary, nextokenId);
-
-             emit NFT_Minted_and_Staked(nextokenId, _sender);
     
              _tokenId = nextokenId;
+
+            emit NFT_Minted_and_Staked(nextokenId, _sender);
+
+            // Transfer the stake amount from the user
+            token.safeTransferFrom(_sender, address(this), _mints[_i].stakeAmount);
+
             // Get the tokenId to use and increment it for the next usage
             unchecked {
                 ++_i;
@@ -104,12 +106,10 @@ contract JBGovernanceNFT is ERC721Votes {
             stakingTokenBalance[_beneficiary] -= _stakeAmount;
 
             emit NFT_Burnt_and_Unstaked(_tokenId);
-            // We can transfer before deleting from storage since the NFT is burned
-            // Any attempt at reentrence will revert since the storage delete is non-critical
-            // we are just recouping some gas cost
-            token.transfer(_beneficiary, _stakeAmount);
 
-             _burn(_tokenId);
+            _burn(_tokenId);
+
+            token.transfer(_beneficiary, _stakeAmount);
 
             unchecked {
                 ++_i;
