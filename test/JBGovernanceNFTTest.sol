@@ -27,14 +27,15 @@ contract JBGovernanceNFTTest is Test {
         JBGovernanceNFTMint[] memory _mints = new JBGovernanceNFTMint[](1);
         // Make sure we have enough balance
         vm.assume(_amount < stakeToken.totalSupply() && _amount != 0);
+        // The receiver has to implement 'ERC721Receiver' if its a contract
+        vm.assume(_beneficiary.code.length == 0);
         // Give enough token allowance to be able to mint
         vm.startPrank(user);
         stakeToken.increaseAllowance(address(jbGovernanceNFT), _amount);
         // Perform the mint
         _mints[0] = JBGovernanceNFTMint({
             stakeAmount: _amount,
-            beneficiary: _beneficiary,
-            stakeNFT: false
+            beneficiary: _beneficiary
         });
         jbGovernanceNFT.mint(_mints);
 
@@ -51,6 +52,8 @@ contract JBGovernanceNFTTest is Test {
 
         // Make sure enough balance exists
         vm.assume(_amount < stakeToken.totalSupply() && _amount != 0);
+        // The receiver has to implement 'ERC721Receiver' if its a contract
+        vm.assume(_beneficiary.code.length == 0);
         vm.assume(_allowanceTooLittle != 0);
 
         // If allowance too little is more than amount we set no allowance,
@@ -67,8 +70,7 @@ contract JBGovernanceNFTTest is Test {
         // Perform the mint
         _mints[0] = JBGovernanceNFTMint({
             stakeAmount: _amount,
-            beneficiary: _beneficiary,
-            stakeNFT: false
+            beneficiary: _beneficiary
         });
 
         // This should revert as we have too little balance
@@ -81,7 +83,9 @@ contract JBGovernanceNFTTest is Test {
     function testMint_multiple_success(uint200[] calldata _amounts, address _beneficiary) public {
         uint256 _sumStaked;
         JBGovernanceNFTMint[] memory _mints = new JBGovernanceNFTMint[](_amounts.length);
-
+        
+        // The receiver has to implement 'ERC721Receiver' if its a contract
+        vm.assume(_beneficiary.code.length == 0);
         // Can't mint to the 0 address
         vm.assume(_beneficiary != address(0));
 
@@ -96,8 +100,7 @@ contract JBGovernanceNFTTest is Test {
 
             _mints[_i] = JBGovernanceNFTMint({
                 stakeAmount: _amount,
-                beneficiary: _beneficiary,
-                stakeNFT: false
+                beneficiary: _beneficiary
             });
         }
         // Make sure we have enough balance

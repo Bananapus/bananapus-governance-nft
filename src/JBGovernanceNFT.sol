@@ -43,17 +43,9 @@ contract JBGovernanceNFT is ERC721Votes {
             unchecked {
                 _tokenId = ++nextokenId;
             }
-            // If the NFT should staked immediatly then we do so
-            // otherwise stakedAt becomes address(0) which means unstaked
-            address _stakedAt;
-            if (_mints[_i].stakeNFT) {
-                _stakedAt = _sender;
-                emit NFTStaked(_tokenId, _sender);
-            }
             // Store the info regarding this staked position
             stakes[_tokenId] = JBGovernanceNFTStake({
-                amount: uint200(_mints[_i].stakeAmount),
-                stakedAt: _stakedAt
+                amount: uint200(_mints[_i].stakeAmount)
             });
             // Living on the edge, using safemint because we can
             _safeMint(_mints[_i].beneficiary, _tokenId);
@@ -69,9 +61,6 @@ contract JBGovernanceNFT is ERC721Votes {
             // Make sure only the owner can do this
             if (_ownerOf(_tokenId) != msg.sender) 
                 revert NO_PERMISSION(_tokenId);
-            // If the nft is staked it has to be unstaked first
-            if(stakes[_tokenId].stakedAt != address(0))
-                revert NFT_IS_STAKED(_tokenId, stakes[_tokenId].stakedAt);
             // Immedialty burn to prevernt reentrency
             _burn(_tokenId);
             // Release the stake
@@ -84,75 +73,6 @@ contract JBGovernanceNFT is ERC721Votes {
             unchecked {
                 ++_i;
             }
-        }
-    }
-
-    function stake(uint256[] calldata _tokenIds) external {
-        address _sender = _msgSender();
-        for (uint256 _i; _i < _tokenIds.length;) {
-            uint256 _tokenId = _tokenIds[_i];
-            // Only the owner or a approved sender can stake the nft
-            if(!_isApprovedOrOwner(_sender, _tokenId))
-                revert NO_PERMISSION(_tokenId);
-            // If the nft is staked it has to be unstaked first
-            if(stakes[_tokenId].stakedAt != address(0))
-                revert NFT_IS_STAKED(_tokenId, stakes[_tokenId].stakedAt);
-            // Stake the nft at the sender address
-            stakes[_tokenId].stakedAt = _sender;
-            emit NFTStaked(_tokenId, _sender);
-            unchecked {
-                ++_i;
-            }
-        }
-    }
-
-    function unstake(uint256[] calldata _tokenIds) external {
-        address _sender = _msgSender();
-           for (uint256 _i; _i < _tokenIds.length;) {
-            uint256 _tokenId = _tokenIds[_i];
-            // Can only unstake tokens that are staked at the senders address
-            // This way contracts can control when users are allowed to unstake
-            if(stakes[_tokenId].stakedAt != _sender)
-                revert NO_PERMISSION(_tokenId);
-
-            // Release the nft
-            stakes[_tokenId].stakedAt = address(0);
-            emit NFTUnstaked(_tokenId);
-            unchecked {
-                ++_i;
-            }
-        }
-    }
-
-    /**
-     * @dev Hook that is called before any token transfer. This includes minting and burning. If {ERC721Consecutive} is
-     * used, the hook may be called as part of a consecutive (batch) mint, as indicated by `batchSize` greater than 1.
-     *
-     * Calling conditions:
-     *
-     * - When `from` and `to` are both non-zero, ``from``'s tokens will be transferred to `to`.
-     * - When `from` is zero, the tokens will be minted for `to`.
-     * - When `to` is zero, ``from``'s tokens will be burned.
-     * - `from` and `to` are never both zero.
-     * - `batchSize` is non-zero.
-     *
-     * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
-     */
-    function _beforeTokenTransfer(
-        address from,
-        address, // to,
-        uint256 firstTokenId,
-        uint256 batchSize
-    ) internal virtual override {
-        // batchSize is used if inherited from `ERC721Consecutive`
-        // which we don't, so this should always be 1
-        assert(batchSize == 1);
-        // Check if the NFT is staked, if it is staked transfer is not allowed
-        // if the from is address 0 then this is a mint in which case we don't need to revert
-        if (from != address(0)) {
-            address _stakedAt = stakes[firstTokenId].stakedAt;
-            if(_stakedAt != address(0)) 
-                revert NFT_IS_STAKED(firstTokenId, _stakedAt);
         }
     }
 
