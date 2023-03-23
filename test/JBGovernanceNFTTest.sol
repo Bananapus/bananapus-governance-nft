@@ -28,7 +28,7 @@ contract JBGovernanceNFTTest is Test {
         // Make sure we have enough balance
         vm.assume(_amount < stakeToken.totalSupply() && _amount != 0);
         // The receiver has to implement 'ERC721Receiver' if its a contract
-        vm.assume(_beneficiary.code.length == 0);
+        vm.assume(_beneficiary.code.length == 0 && _beneficiary != address(0));
         // Give enough token allowance to be able to mint
         vm.startPrank(user);
         stakeToken.increaseAllowance(address(jbGovernanceNFT), _amount);
@@ -83,7 +83,7 @@ contract JBGovernanceNFTTest is Test {
     function testMint_multiple_success(uint200[] calldata _amounts, address _beneficiary) public {
         uint256 _sumStaked;
         JBGovernanceNFTMint[] memory _mints = new JBGovernanceNFTMint[](_amounts.length);
-        
+
         // The receiver has to implement 'ERC721Receiver' if its a contract
         vm.assume(_beneficiary.code.length == 0);
         // Can't mint to the 0 address

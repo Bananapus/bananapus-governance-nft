@@ -24,7 +24,7 @@ contract JBGovernanceNFT is ERC721Votes {
     mapping(address => uint256) public stakingTokenBalance;
     mapping(uint256 => JBGovernanceNFTStake) stakes;
 
-    uint256 nextokenId = 1;
+    uint256 numberOfTokens = 0;
 
     constructor(IERC20 _token) ERC721("", "") EIP712("", "") {
         token = _token;
@@ -41,7 +41,7 @@ contract JBGovernanceNFT is ERC721Votes {
             token.safeTransferFrom(_sender, address(this), _mints[_i].stakeAmount);
             // Get the tokenId to use and increment it for the next usage
             unchecked {
-                _tokenId = ++nextokenId;
+                _tokenId = ++numberOfTokens;
             }
             // Store the info regarding this staked position
             stakes[_tokenId] = JBGovernanceNFTStake({
