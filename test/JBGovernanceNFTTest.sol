@@ -41,7 +41,7 @@ contract JBGovernanceNFTTest is Test {
         jbGovernanceNFT.mint_and_stake(_mints);
 
         assertEq(
-            jbGovernanceNFT.stakingTokenBalance(_beneficiary),
+            jbGovernanceNFT.stakingTokenBalance(1),
             _amount
         );
 
@@ -110,10 +110,12 @@ contract JBGovernanceNFTTest is Test {
         vm.prank(user);
         jbGovernanceNFT.mint_and_stake(_mints);
 
+        for(uint256 _i = 1; _i <= _amounts.length; _i++){
         assertEq(
-            jbGovernanceNFT.stakingTokenBalance(_beneficiary),
-            _sumStaked
+            jbGovernanceNFT.stakingTokenBalance(_i),
+            _amounts[_i - 1]
         );
+        }
     }
 
     function testBurn_single_success(uint200 _amount, address _beneficiary) public {
@@ -146,7 +148,7 @@ contract JBGovernanceNFTTest is Test {
         jbGovernanceNFT.burn_and_unstake(_burns);
 
         assertEq(
-            jbGovernanceNFT.stakingTokenBalance(_beneficiary),
+            jbGovernanceNFT.stakingTokenBalance(1),
             0
         );
 
@@ -200,51 +202,17 @@ contract JBGovernanceNFTTest is Test {
 
         jbGovernanceNFT.burn_and_unstake(_burns);
 
+        for(uint256 _i = 1; _i <= _amounts.length; _i++){
         assertEq(
-            jbGovernanceNFT.stakingTokenBalance(_beneficiary),
+            jbGovernanceNFT.stakingTokenBalance(_i),
             0
         );
+        }
 
         assertEq(
             stakeToken.balanceOf(address(jbGovernanceNFT)),
             0
         );
-        vm.stopPrank();
-    }
-
-    function testTransfer_single_success(uint200 _amount, address _beneficiary) public {
-        address newOwner = makeAddr("newOwner");
-
-        JBGovernanceNFTMint[] memory _mints = new JBGovernanceNFTMint[](1);
-        // Make sure we have enough balance
-        vm.assume(_amount < stakeToken.totalSupply() && _amount != 0);
-        vm.assume(_beneficiary != address(0));
-        vm.assume(_beneficiary != address(jbGovernanceNFT));
-
-        // Give enough token allowance to be able to mint
-        vm.startPrank(user);
-        stakeToken.increaseAllowance(address(jbGovernanceNFT), _amount);
-        // Perform the mint
-        _mints[0] = JBGovernanceNFTMint({
-            stakeAmount: _amount,
-            beneficiary: _beneficiary
-        });
-        jbGovernanceNFT.mint_and_stake(_mints);
-        vm.stopPrank();
-
-        vm.prank(_beneficiary);
-        jbGovernanceNFT.transferFrom(_beneficiary, newOwner, 1);
-
-        assertEq(
-            jbGovernanceNFT.stakingTokenBalance(_beneficiary),
-            0
-        );
-
-        assertEq(
-            jbGovernanceNFT.stakingTokenBalance(newOwner),
-            _amount
-        );
-
         vm.stopPrank();
     }
 }

@@ -35,9 +35,9 @@ contract JBGovernanceNFT is ERC721Votes {
     IERC20 immutable token;
 
     /**
-     * @dev A mapping of staked token balances by user.
+     * @dev A mapping of staked token balances per id, we can track the owner by ownerOf so don't need a struct as key
      */
-    mapping(address => uint256) public stakingTokenBalance;
+    mapping(uint256 => uint256) public stakingTokenBalance;
 
     /**
      * @dev The next available token ID to be minted.
@@ -68,7 +68,7 @@ contract JBGovernanceNFT is ERC721Votes {
                 revert INVALID_STAKE_AMOUNT(_i, _mints[_i].stakeAmount);
             }
 
-            stakingTokenBalance[_mints[_i].beneficiary] += _mints[_i].stakeAmount;
+            stakingTokenBalance[nextokenId] += _mints[_i].stakeAmount;
 
             // Living on the edge, using safemint because we can
             _safeMint(_mints[_i].beneficiary, nextokenId);
@@ -102,8 +102,8 @@ contract JBGovernanceNFT is ERC721Votes {
             if (_owner != msg.sender) 
                 revert NO_PERMISSION(_tokenId);  
             
-            uint256 _stakeAmount = stakingTokenBalance[_beneficiary];
-            delete stakingTokenBalance[_beneficiary];
+            uint256 _stakeAmount = stakingTokenBalance[_tokenId];
+            delete stakingTokenBalance[_tokenId];
 
             emit NFT_Burnt_and_Unstaked(_tokenId);
 
@@ -115,40 +115,5 @@ contract JBGovernanceNFT is ERC721Votes {
                 ++_i;
             }
         } 
-    }
-
-    /**
-     * @dev See {ERC721-_afterTokenTransfer}. Adjusts votes when tokens are transferred.
-     *
-     * Emits a {IVotes-DelegateVotesChanged} event.
-     */
-    function _afterTokenTransfer(address from, address to, uint256 firstTokenId, uint256 batchSize)
-        internal
-        virtual
-        override
-    {
-        // batchSize is used if inherited from `ERC721Consecutive`
-        // which we don't, so this should always be 1
-        assert(batchSize == 1);
-        
-        uint256 _stakeAmount = stakingTokenBalance[from];
-        // need to update the staked amounts during a transfer
-        if (from != address(0) && to != address(0)) {
-            // optional using unchecked for now
-            unchecked {
-              stakingTokenBalance[from] -= _stakeAmount;
-              stakingTokenBalance[to] += _stakeAmount;
-            }
-        }
-
-        _transferVotingUnits(from, to, _stakeAmount);
-        super._afterTokenTransfer(from, to, firstTokenId, batchSize);
-    }
-
-    /**
-     * @dev Returns the balance of `account`.
-     */
-    function _getVotingUnits(address account) internal view virtual override returns (uint256) {
-        return stakingTokenBalance[account];
     }
 }
