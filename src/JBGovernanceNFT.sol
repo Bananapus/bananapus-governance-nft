@@ -32,7 +32,7 @@ contract JBGovernanceNFT is ERC721Votes {
     /**
      * @dev The ERC20 token that is used for staking.
      */
-    IERC20 immutable token;
+    IERC20 immutable stakedToken;
 
     /**
      * @dev A mapping of staked token balances per id, we can track the owner by ownerOf so don't need a struct as key
@@ -49,10 +49,10 @@ contract JBGovernanceNFT is ERC721Votes {
     //*********************************************************************//
 
     /**
-     * @param _token The ERC20 token to use for staking.
+     * @param _stakedToken The ERC20 token to use for staking.
      */
-    constructor(IERC20 _token) ERC721("", "") EIP712("", "") {
-        token = _token;
+    constructor(IERC20 _stakedToken) ERC721("", "") EIP712("", "") {
+        stakedToken = _stakedToken;
     }
 
     /**
@@ -78,7 +78,7 @@ contract JBGovernanceNFT is ERC721Votes {
             emit NFT_Minted_and_Staked(nextokenId, _sender);
 
             // Transfer the stake amount from the user
-            token.safeTransferFrom(_sender, address(this), _mints[_i].stakeAmount);
+            stakedToken.safeTransferFrom(_sender, address(this), _mints[_i].stakeAmount);
 
             // Get the tokenId to use and increment it for the next usage
             unchecked {
@@ -109,7 +109,7 @@ contract JBGovernanceNFT is ERC721Votes {
 
             _burn(_tokenId);
 
-            token.transfer(_beneficiary, _stakeAmount);
+            stakedToken.transfer(_beneficiary, _stakeAmount);
 
             unchecked {
                 ++_i;
