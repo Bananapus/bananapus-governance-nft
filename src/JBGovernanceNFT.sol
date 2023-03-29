@@ -5,6 +5,7 @@ import {JBGovernanceNFTMint} from "./structs/JBGovernanceNFTMint.sol";
 import {JBGovernanceNFTBurn} from "./structs/JBGovernanceNFTBurn.sol";
 
 import "@openzeppelin/contracts/utils/Checkpoints.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {EIP712, ERC721, ERC721Votes} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Votes.sol";
 
@@ -16,7 +17,7 @@ import {EIP712, ERC721, ERC721Votes} from "@openzeppelin/contracts/token/ERC721/
     Adheres to -
     ERC721Votes: For enabling the voting and delegation mechanism.
  */
-contract JBGovernanceNFT is ERC721Votes {
+contract JBGovernanceNFT is ERC721Votes, ReentrancyGuard {
     using Checkpoints for Checkpoints.History;
     using SafeERC20 for IERC20;
 
@@ -60,7 +61,7 @@ contract JBGovernanceNFT is ERC721Votes {
      * @param _mints An array of struct containing the beneficiary and stake amount for each NFT to be minted.
      * @return _tokenId The token ID of the newly minted NFT.
     */
-    function mint_and_stake(JBGovernanceNFTMint[] calldata _mints) external returns (uint256 _tokenId) {
+    function mint_and_stake(JBGovernanceNFTMint[] calldata _mints) external nonReentrant returns (uint256 _tokenId) {
         address _sender = _msgSender();
         for (uint256 _i; _i < _mints.length;) {
             // Should never be 0
@@ -92,7 +93,7 @@ contract JBGovernanceNFT is ERC721Votes {
      * @dev Burn the nft and unstake tokens.
      * @param _burns An array of struct containing the token id and beneficiary to be sent the staked tokens too.
     */
-    function burn_and_unstake(JBGovernanceNFTBurn[] calldata _burns) external {
+    function burn_and_unstake(JBGovernanceNFTBurn[] calldata _burns) external  nonReentrant {
         for (uint256 _i; _i < _burns.length;) {
             uint256 _tokenId = _burns[_i].tokenId;
             address _owner = _ownerOf(_tokenId);
