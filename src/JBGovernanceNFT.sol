@@ -73,8 +73,8 @@ contract JBGovernanceNFT is ERC721Votes {
                 _tokenIds[_i] = ++numberOfTokens;
             }
             stakingTokenBalance[_tokenIds[_i]] = _mints[_i].stakeAmount;
-            // Living on the edge, using safemint because we can
-            _safeMint(_mints[_i].beneficiary, _tokenIds[_i]);
+            // Mint the NFT to the beneficiary
+            _mint(_mints[_i].beneficiary, _tokenIds[_i]);
             emit Mint(_tokenIds[_i], _sender);
             // Get the tokenId to use and increment it for the next usage
             unchecked {
