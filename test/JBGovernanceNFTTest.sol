@@ -27,8 +27,8 @@ contract JBGovernanceNFTTest is Test {
         JBGovernanceNFTMint[] memory _mints = new JBGovernanceNFTMint[](1);
         // Make sure we have enough balance
         vm.assume(_amount < stakeToken.totalSupply() && _amount != 0);
-        vm.assume(_beneficiary != address(0));
-        vm.assume(_beneficiary != address(jbGovernanceNFT));
+        // The receiver has to implement 'ERC721Receiver' if its a contract
+        vm.assume(_beneficiary.code.length == 0 && _beneficiary != address(0));
 
         // Give enough token allowance to be able to mint
         vm.startPrank(user);
@@ -38,7 +38,7 @@ contract JBGovernanceNFTTest is Test {
             stakeAmount: _amount,
             beneficiary: _beneficiary
         });
-        jbGovernanceNFT.mint_and_stake(_mints);
+        jbGovernanceNFT.mint(_mints);
 
         assertEq(
             jbGovernanceNFT.stakingTokenBalance(1),
@@ -74,7 +74,7 @@ contract JBGovernanceNFTTest is Test {
 
         // This should revert as we have too little balance
         vm.expectRevert();
-        jbGovernanceNFT.mint_and_stake(_mints);
+        jbGovernanceNFT.mint(_mints);
 
         vm.stopPrank();
     }
@@ -84,8 +84,8 @@ contract JBGovernanceNFTTest is Test {
         JBGovernanceNFTMint[] memory _mints = new JBGovernanceNFTMint[](_amounts.length);
 
         // Can't mint to the 0 address
-        vm.assume(_beneficiary != address(0));
-        vm.assume(_beneficiary != address(jbGovernanceNFT));
+        // The receiver has to implement 'ERC721Receiver' if its a contract
+        vm.assume(_beneficiary.code.length == 0 && _beneficiary != address(0));
 
         for(uint256 _i; _i < _amounts.length; _i++){
             uint200 _amount = _amounts[_i];
@@ -108,7 +108,7 @@ contract JBGovernanceNFTTest is Test {
         stakeToken.increaseAllowance(address(jbGovernanceNFT), _sumStaked);
 
         vm.prank(user);
-        jbGovernanceNFT.mint_and_stake(_mints);
+        jbGovernanceNFT.mint(_mints);
 
         for(uint256 _i = 1; _i <= _amounts.length; _i++){
         assertEq(
@@ -123,8 +123,8 @@ contract JBGovernanceNFTTest is Test {
         JBGovernanceNFTBurn[] memory _burns = new JBGovernanceNFTBurn[](1);
         // Make sure we have enough balance
         vm.assume(_amount < stakeToken.totalSupply() && _amount != 0);
-        vm.assume(_beneficiary != address(0));
-        vm.assume(_beneficiary != address(jbGovernanceNFT));
+        // The receiver has to implement 'ERC721Receiver' if its a contract
+        vm.assume(_beneficiary.code.length == 0 && _beneficiary != address(0));
         // Give enough token allowance to be able to mint
         vm.startPrank(user);
         stakeToken.increaseAllowance(address(jbGovernanceNFT), _amount);
@@ -134,7 +134,7 @@ contract JBGovernanceNFTTest is Test {
             beneficiary: _beneficiary
         });
 
-        jbGovernanceNFT.mint_and_stake(_mints);
+        jbGovernanceNFT.mint(_mints);
         vm.stopPrank();
         
         // burn the nft and get stake amount back
@@ -145,7 +145,7 @@ contract JBGovernanceNFTTest is Test {
 
         vm.startPrank(_beneficiary);
 
-        jbGovernanceNFT.burn_and_unstake(_burns);
+        jbGovernanceNFT.burn(_burns);
 
         assertEq(
             jbGovernanceNFT.stakingTokenBalance(1),
@@ -165,8 +165,8 @@ contract JBGovernanceNFTTest is Test {
         JBGovernanceNFTMint[] memory _mints = new JBGovernanceNFTMint[](_amounts.length);
         JBGovernanceNFTBurn[] memory _burns = new JBGovernanceNFTBurn[](_amounts.length);
 
-        vm.assume(_beneficiary != address(0));
-        vm.assume(_beneficiary != address(jbGovernanceNFT));
+        // The receiver has to implement 'ERC721Receiver' if its a contract
+        vm.assume(_beneficiary.code.length == 0 && _beneficiary != address(0));
 
         for(uint256 _i; _i < _amounts.length; _i++){
             uint200 _amount = _amounts[_i];
@@ -189,7 +189,7 @@ contract JBGovernanceNFTTest is Test {
         stakeToken.increaseAllowance(address(jbGovernanceNFT), _sumStaked);
 
         vm.prank(user);
-        jbGovernanceNFT.mint_and_stake(_mints);
+        jbGovernanceNFT.mint(_mints);
 
         for(uint256 _i; _i < _amounts.length; _i++){
             _burns[_i] = JBGovernanceNFTBurn({
@@ -200,7 +200,7 @@ contract JBGovernanceNFTTest is Test {
         // burn the nft's
         vm.startPrank(_beneficiary);
 
-        jbGovernanceNFT.burn_and_unstake(_burns);
+        jbGovernanceNFT.burn(_burns);
 
         for(uint256 _i = 1; _i <= _amounts.length; _i++){
         assertEq(
