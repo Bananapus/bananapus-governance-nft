@@ -4,8 +4,6 @@ pragma solidity ^0.8.17;
 import {JBGovernanceNFTMint} from "./structs/JBGovernanceNFTMint.sol";
 import {JBGovernanceNFTBurn} from "./structs/JBGovernanceNFTBurn.sol";
 
-import "@openzeppelin/contracts/utils/Checkpoints.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {EIP712, ERC721, ERC721Votes} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Votes.sol";
 
@@ -17,12 +15,11 @@ import {EIP712, ERC721, ERC721Votes} from "@openzeppelin/contracts/token/ERC721/
     Adheres to -
     ERC721Votes: For enabling the voting and delegation mechanism.
  */
-contract JBGovernanceNFT is ERC721Votes, ReentrancyGuard {
-    using Checkpoints for Checkpoints.History;
+contract JBGovernanceNFT is ERC721Votes {
     using SafeERC20 for IERC20;
 
-    event NFT_Minted_and_Staked(uint256 _tokenId, address _stakedAt);
-    event NFT_Burnt_and_Unstaked(uint256 _tokenId);
+    event Mint(uint256 _tokenId, address _stakedAt);
+    event Burn(uint256 _tokenId);
 
     //*********************************************************************//
     // --------------------------- custom errors ------------------------- //
@@ -43,7 +40,7 @@ contract JBGovernanceNFT is ERC721Votes, ReentrancyGuard {
     /**
      * @dev The next available token ID to be minted.
      */
-    uint256 nextokenId = 1;
+    uint256 numberOfTokens;
 
     //*********************************************************************//
     // ---------------------------- constructor -------------------------- //
@@ -59,59 +56,55 @@ contract JBGovernanceNFT is ERC721Votes, ReentrancyGuard {
     /**
      * @dev Mint a new NFT and stake tokens.
      * @param _mints An array of struct containing the beneficiary and stake amount for each NFT to be minted.
-     * @return _tokenId The token ID of the newly minted NFT.
+     * @return _tokenId The token IDs of the newly minted NFTs.
     */
-    function mint_and_stake(JBGovernanceNFTMint[] calldata _mints) external nonReentrant returns (uint256 _tokenId) {
+    function mint(JBGovernanceNFTMint[] calldata _mints) external returns (uint256[] memory) {
         address _sender = _msgSender();
+        uint256[] memory _tokenIds = new uint256[](_mints.length);
         for (uint256 _i; _i < _mints.length;) {
             // Should never be 0
-            if (_mints[_i].stakeAmount == 0) {
+            if (_mints[_i].stakeAmount == 0) 
                 revert INVALID_STAKE_AMOUNT(_i, _mints[_i].stakeAmount);
-            }
-
-            stakingTokenBalance[nextokenId] += _mints[_i].stakeAmount;
-
-            // Living on the edge, using safemint because we can
-            _safeMint(_mints[_i].beneficiary, nextokenId);
-    
-             _tokenId = nextokenId;
-
-            emit NFT_Minted_and_Staked(nextokenId, _sender);
-
             // Transfer the stake amount from the user
             stakedToken.safeTransferFrom(_sender, address(this), _mints[_i].stakeAmount);
-
+            // Increase the amount of tokens that exist
+            // and use the new number as the id
+            unchecked {
+                _tokenIds[_i] = ++numberOfTokens;
+            }
+            stakingTokenBalance[_tokenIds[_i]] = _mints[_i].stakeAmount;
+            // Mint the NFT to the beneficiary
+            _mint(_mints[_i].beneficiary, _tokenIds[_i]);
+            emit Mint(_tokenIds[_i], _sender);
             // Get the tokenId to use and increment it for the next usage
             unchecked {
                 ++_i;
-                nextokenId += 1;
             }
         }
+
+        return _tokenIds;
     }
 
     /**
      * @dev Burn the nft and unstake tokens.
-     * @param _burns An array of struct containing the token id and beneficiary to be sent the staked tokens too.
+     * @param _burns An array of struct containing the token id and beneficiary to be sent the staked tokens to.
     */
-    function burn_and_unstake(JBGovernanceNFTBurn[] calldata _burns) external  nonReentrant {
+    function burn(JBGovernanceNFTBurn[] calldata _burns) external {
+        address _sender = _msgSender();
         for (uint256 _i; _i < _burns.length;) {
             uint256 _tokenId = _burns[_i].tokenId;
-            address _owner = _ownerOf(_tokenId);
-            address _beneficiary = _burns[_i].beneficiary;
-
-            // Make sure only the owner can do this
-            if (_owner != msg.sender) 
+            // Make sure only approved addresses can do this
+            if (!_isApprovedOrOwner(_sender, _tokenId)) 
                 revert NO_PERMISSION(_tokenId);  
-            
-            uint256 _stakeAmount = stakingTokenBalance[_tokenId];
-            delete stakingTokenBalance[_tokenId];
-
-            emit NFT_Burnt_and_Unstaked(_tokenId);
-
+            // Immedialty burn to prevernt reentrency
             _burn(_tokenId);
-
-            stakedToken.transfer(_beneficiary, _stakeAmount);
-
+            // Release the stake
+            // We can transfer before deleting from storage since the NFT is burned
+            // Any attempt at reentrence will revert since the storage delete is non-critical
+            stakedToken.transfer(_burns[_i].beneficiary, stakingTokenBalance[_tokenId]);
+            // Delete the position
+            delete stakingTokenBalance[_tokenId];
+            emit Burn(_tokenId);
             unchecked {
                 ++_i;
             }
